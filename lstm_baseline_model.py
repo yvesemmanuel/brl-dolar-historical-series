@@ -11,6 +11,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import os
 import warnings
+import json
 
 warnings.filterwarnings("ignore")
 tf.get_logger().setLevel("ERROR")
@@ -235,6 +236,18 @@ class BRLUSDLSTMModel:
         print(f"R²: {r2:.4f}")
         print(f"MAPE: {mape:.2f}%")
 
+        metrics = {
+            "rmse": float(rmse),
+            "mae": float(mae),
+            "r2": float(r2),
+            "mape": float(mape),
+        }
+
+        with open("results/lstm/metrics.json", "w") as f:
+            json.dump(metrics, f, indent=2)
+
+        print("Metrics saved to results/lstm/metrics.json")
+
         return {
             "rmse": rmse,
             "mae": mae,
@@ -417,7 +430,26 @@ def run_lstm_baseline():
         X, y, dates
     )
 
-    model.train_model(X_train, y_train, X_test, y_test, epochs=100, batch_size=32)
+    history = model.train_model(
+        X_train, y_train, X_test, y_test, epochs=100, batch_size=32
+    )
+
+    final_loss = float(history.history["loss"][-1])
+    final_val_loss = float(history.history["val_loss"][-1])
+    final_mae = float(history.history["mae"][-1])
+    final_val_mae = float(history.history["val_mae"][-1])
+
+    training_metrics = {
+        "final_loss": final_loss,
+        "final_val_loss": final_val_loss,
+        "final_mae": final_mae,
+        "final_val_mae": final_val_mae,
+    }
+
+    with open("results/lstm/training_metrics.json", "w") as f:
+        json.dump(training_metrics, f, indent=2)
+
+    print(f"Training metrics saved to results/lstm/training_metrics.json")
 
     results = model.evaluate_model(X_test, y_test, dates_test)
 
