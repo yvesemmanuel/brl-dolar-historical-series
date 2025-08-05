@@ -135,17 +135,31 @@ class BRLUSDLSTMModel:
 
         return X, y, data.index[self.sequence_length :]
 
-    def train_test_split(self, X, y, dates, test_size=0.2):
-        """Split data into train and test sets"""
-        split_idx = int(len(X) * (1 - test_size))
+    def train_test_split(self, X, y, dates, test_years=1):
+        """Split data into train and test sets using last N years as test"""
+
+        test_start_date = dates.max() - pd.DateOffset(years=test_years)
+        split_idx = None
+
+        for i, date in enumerate(dates):
+            if date >= test_start_date:
+                split_idx = i
+                break
+
+        if split_idx is None:
+            split_idx = int(len(X) * 0.8)
 
         X_train, X_test = X[:split_idx], X[split_idx:]
         y_train, y_test = y[:split_idx], y[split_idx:]
         dates_train = dates[:split_idx]
         dates_test = dates[split_idx:]
 
-        print(f"Train set: {X_train.shape[0]} samples")
-        print(f"Test set: {X_test.shape[0]} samples")
+        print(
+            f"Train set: {X_train.shape[0]} samples (up to {dates_train.max().strftime('%Y-%m-%d')})"
+        )
+        print(
+            f"Test set: {X_test.shape[0]} samples (from {dates_test.min().strftime('%Y-%m-%d')} to {dates_test.max().strftime('%Y-%m-%d')})"
+        )
 
         return X_train, X_test, y_train, y_test, dates_train, dates_test
 
@@ -190,7 +204,7 @@ class BRLUSDLSTMModel:
 
         callbacks = [
             EarlyStopping(
-                monitor="val_loss", patience=15, restore_best_weights=True, verbose=1
+                monitor="val_loss", patience=20, restore_best_weights=True, verbose=1
             ),
             ReduceLROnPlateau(
                 monitor="val_loss", factor=0.2, patience=10, min_lr=1e-6, verbose=1
@@ -331,25 +345,55 @@ class BRLUSDLSTMModel:
         plt.savefig("results/lstm/training_history.png", dpi=300, bbox_inches="tight")
         plt.close()
 
-    def plot_predictions(self, results, n_show=500):
-        """Plot model predictions vs actual values"""
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 10))
+    def plot_predictions(self, data, results, dates_train, dates_test, n_show=500):
+        """Plot training data, test true values, predicted curves, and residuals"""
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 12))
 
-        dates = results["dates"][-n_show:]
-        actual = results["actual"][-n_show:]
-        pred = results["predictions"][-n_show:]
+        train_end_idx = min(len(dates_train), n_show)
+        train_dates = dates_train[-train_end_idx:]
+        train_prices = data.loc[train_dates, "Close"]
 
-        ax1.plot(dates, actual, label="Actual Price", linewidth=1.5, alpha=0.8)
-        ax1.plot(dates, pred, label="Predicted Price", linewidth=1.5, alpha=0.8)
-        ax1.set_title(f"LSTM Model: Predicted vs Actual Prices (Last {n_show} days)")
+        test_dates = results["dates"]
+        test_actual = results["actual"]
+        test_pred = results["predictions"]
+
+        ax1.plot(
+            train_dates,
+            train_prices,
+            label="Training Data",
+            linewidth=1.5,
+            alpha=0.7,
+            color="blue",
+        )
+
+        ax1.plot(
+            test_dates,
+            test_actual,
+            label="Test True Values",
+            linewidth=1.5,
+            alpha=0.8,
+            color="green",
+        )
+
+        ax1.plot(
+            test_dates,
+            test_pred,
+            label="Predicted Values",
+            linewidth=1.5,
+            alpha=0.8,
+            color="red",
+            linestyle="--",
+        )
+
+        ax1.set_title("LSTM Model: Training Data, Test True Values, and Predictions")
         ax1.set_xlabel("Date")
         ax1.set_ylabel("Price (BRL)")
         ax1.legend()
         ax1.grid(True, alpha=0.3)
         ax1.tick_params(axis="x", rotation=45)
 
-        residuals = actual - pred
-        ax2.plot(dates, residuals, color="red", alpha=0.7)
+        residuals = test_actual - test_pred
+        ax2.plot(test_dates, residuals, color="red", alpha=0.7, linewidth=1)
         ax2.axhline(y=0, color="black", linestyle="--", alpha=0.5)
         ax2.set_title("Prediction Residuals")
         ax2.set_xlabel("Date")
@@ -358,9 +402,7 @@ class BRLUSDLSTMModel:
         ax2.tick_params(axis="x", rotation=45)
 
         plt.tight_layout()
-        plt.savefig(
-            "results/lstm/predictions_vs_actual.png", dpi=300, bbox_inches="tight"
-        )
+        plt.savefig("results/lstm/predictions.png", dpi=300, bbox_inches="tight")
         plt.close()
 
     def plot_forecast(self, data, forecasts, forecast_dates, n_history=100):
@@ -427,7 +469,7 @@ def run_lstm_baseline():
     X, y, dates = model.create_sequences(data)
 
     X_train, X_test, y_train, y_test, dates_train, dates_test = model.train_test_split(
-        X, y, dates
+        X, y, dates, test_years=1
     )
 
     history = model.train_model(
@@ -456,7 +498,7 @@ def run_lstm_baseline():
     forecasts, forecast_dates = model.forecast_future(data, n_steps=30)
 
     model.plot_training_history()
-    model.plot_predictions(results)
+    model.plot_predictions(data, results, dates_train, dates_test)
     model.plot_forecast(data, forecasts, forecast_dates)
 
     print("\n" + "=" * 60)
