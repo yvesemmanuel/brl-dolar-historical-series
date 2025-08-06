@@ -1,0 +1,19 @@
+[project]
+name = "brl-dolar-historical-series"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "numpy",
+    "seaborn",
+    "matplotlib",
+    "tensorflow",
+    "keras",
+    "statsmodels",
+]
+
+[tool]
+
+[tool.pyrefly]
+project-includes = ["**/*"]
+project-excludes = ["**/*venv/**/*"]

@@ -1,24 +1,29 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+
+
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import tensorflow as tf
+
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+
 import os
 import warnings
 import json
 
+
 warnings.filterwarnings("ignore")
 tf.get_logger().setLevel("ERROR")
 
+
 try:
     if tf.config.list_physical_devices("GPU"):
-        print("MPS GPU detected! Setting up for GPU acceleration...")
+        print("GPU detected! Setting up for GPU acceleration...")
 
         gpus = tf.config.experimental.list_physical_devices("GPU")
         if gpus:
