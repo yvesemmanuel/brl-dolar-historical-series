@@ -54,6 +54,11 @@ The ARIMA model significantly outperforms the LSTM baseline across all metrics, 
 └── README.md
 ```
 
+## Model Results
+
+### LSTM Predictions
+![LSTM Model Predictions](results/lstm/predictions.png)
+
 ## Key Insights
 
 - **ARIMA** achieves superior performance (R² = 0.9047, MAPE = 0.91%)
