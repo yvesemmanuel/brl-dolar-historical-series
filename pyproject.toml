@@ -10,10 +10,10 @@ dependencies = [
     "tensorflow",
     "keras",
     "statsmodels",
+    "scikit-learn>=1.7.1",
 ]
 
-[tool]
-
-[tool.pyrefly]
-project-includes = ["**/*"]
-project-excludes = ["**/*venv/**/*"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*.py"]
+exclude = ["data*", "results*", "eda_plots*"]
